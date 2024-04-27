@@ -1,0 +1,120 @@
+Here is a simple PowerShell Desired State Configuration (DSC) script that installs the IIS web server on a target machine, updates the default website to display "DSC isn't so bad after all!", and includes a module for removing the IIS web server when needed.
+
+Configuration IISWebServer
+{
+    # Import the DSC Resource module for IIS
+    Import-DscResource -ModuleName 'PSDesiredStateConfiguration'
+    Import-DscResource -ModuleName 'xWebAdministration'
+
+    # Node definition - This could be localhost or a remote machine's name
+    Node "localhost"
+    {
+        # Ensure the IIS Role is installed
+        WindowsFeature IIS
+        {
+            Ensure = "Present"
+            Name   = "Web-Server"
+        }
+
+        # Create a new website or update the default website
+        xWebsite DefaultWebsite
+        {
+            Ensure          = "Present"
+            Name            = "Default Web Site"
+            State           = "Started"
+            PhysicalPath    = "C:\inetpub\wwwroot"
+            DependsOn       = "[WindowsFeature]IIS"
+        }
+
+        # Deploy the specified content to the wwwroot folder
+        File WebsiteContent
+        {
+            Ensure          = "Present"
+            Type            = "File"
+            DestinationPath = "C:\inetpub\wwwroot\index.html"
+            Contents        = "DSC isn’t so bad after all!"
+            DependsOn       = "[xWebsite]DefaultWebsite"
+        }
+    }
+}
+
+"#Configuration to remove the IIS Web Server"
+Configuration RemoveIISWebServer
+{
+    Import-DscResource -ModuleName 'PSDesiredStateConfiguration'
+
+    Node "localhost"
+    {
+        # Ensure the IIS Role is removed
+        WindowsFeature IIS
+        {
+            Ensure = "Absent"
+            Name   = "Web-Server"
+        }
+    }
+}
+
+# To apply the configuration
+IISWebServer -OutputPath "C:\DSC\IISWebServer"
+Start-DscConfiguration -Path "C:\DSC\IISWebServer" -Wait -Verbose -Force
+
+# To remove the IIS web server
+RemoveIISWebServer -OutputPath "C:\DSC\RemoveIISWebServer"
+Start-DscConfiguration -Path "C:\DSC\RemoveIISWebServer" -Wait -Verbose -Force
+
+  
+Using PowerShell Desired State Configuration (DSC) within Azure involves several steps, from setting up an Azure Automation Account to deploying and configuring a Windows Server VM, and then applying a DSC configuration to ensure the VM conforms to the desired state. Here’s a detailed guide on how to use your DSC script in Azure:
+
+### 1. Create an Azure Automation Account
+
+1. **Log in to the Azure Portal** at [https://portal.azure.com](https://portal.azure.com/).
+    
+2. **Create a new Automation Account**:
+    
+    - Navigate to **Automation Accounts** from the sidebar or search for it in the search bar.
+    - Click on **+ Create**.
+    - Fill in the details such as the subscription, resource group (create a new one or use an existing), Automation account name, and the region.
+    - Click **Review + create**, and then **Create**.
+3. **Import the PowerShell DSC Configuration**:
+    
+    - Once the Automation account is created, navigate to it.
+    - Go to **State configuration (DSC)** under the section **Configuration Management**.
+    - Click on **Configurations** tab, then **+ Add** to import your PowerShell DSC configuration script.
+    - Provide a name and description for your configuration and upload the `.ps1` script file.
+
+### 2. Deploy a Windows Server 2019 Virtual Machine
+
+1. **Create a Virtual Machine**:
+    - Go back to the Azure homepage and select **Virtual machines**, then click **+ Create**.
+    - Choose the **Windows Server 2019 Datacenter** edition.
+    - Enter virtual machine details such as name, region, and administrator credentials.
+    - Under the **Networking** tab, make sure to adjust the Network Security Group (NSG) to allow HTTP traffic:
+        - Add an inbound security rule that allows TCP traffic on port 80 from any source.
+    - Review all settings and click **Create**.
+
+### 3. Connect the VM to Azure Automation
+
+1. **Link VM to the Automation Account**:
+    - In the Automation Account, navigate to **Hybrid worker groups** under **Shared Resources**.
+    - Click on **+ Add** and select the VM you created. Follow the instructions to install the required agent on the VM and register it as a hybrid worker.
+
+### 4. Compile and Apply the DSC Configuration
+
+1. **Compile the DSC Configuration**:
+    
+    - In the Automation account, navigate to **State configuration (DSC)**.
+    - Under **Configurations**, select your uploaded configuration and click on **Compile**. This action will generate a node configuration.
+2. **Assign the DSC Configuration to the VM**:
+    
+    - Still in **State configuration (DSC)**, go to **Nodes** and click **+ Add**.
+    - Select the VM and assign the compiled node configuration from the dropdown.
+3. **Monitor the Deployment**:
+    
+    - Check the status under the **Nodes** section to monitor the application of the DSC configuration. It will show as "Compliant" once the configuration is successfully applied.
+
+### 5. Confirm the Website is Accessible
+
+1. **Check Website Accessibility**:
+    - Use the public IP address of the VM to access the website via a web browser (e.g., `http://
+
+[public-ip-address]`). Ensure that the website loads successfully.
