@@ -1,0 +1,167 @@
+##############################################################################################################
+#                               LAB 03 - Azure VM Image Builder                                              #
+#   Commands are from:                                                                                       #
+#   https://docs.microsoft.com/en-us/azure/virtual-machines/windows/image-builder-powershell                 #
+##############################################################################################################
+
+### Before we start working on anything, make sure we have Az Powershell module installed
+### This module will provide us with cmdlets for working with Azure
+Install-Module -Name Az -Force -Confirm:$false
+
+### Then we can authenticate with our Azure account
+Connect-AzAccount
+
+######## BEGIN  Task 1: Preparing the Subscription for VM Image builder ########
+# The way we manage which subscription we want to have as active inside our Powershell session
+# Is through a Powershell object called AzContext
+# To find the ID our current subscription, we will execute the following cmdlet
+Get-AzContext
+
+# To make sure we are on the correct subscription, we will set our current AzContext based on 
+# The output of the previous cmdlet
+Set-AzContext -SubscriptionId <00000000-0000-0000-0000-000000000000>
+
+# Now we can register all the features that we need in order to work with Azure VM Image builder
+Get-AzResourceProvider -ProviderNamespace Microsoft.Compute, Microsoft.KeyVault, Microsoft.Storage, Microsoft.VirtualMachineImages, Microsoft.Network, Microsoft.ManagedIdentity | Where-Object RegistrationState -ne Registered | Register-AzResourceProvider
+
+### Now we will define a few variables
+# Resource group in which our VM image will be created
+$resourceGroup = "lab-03"
+# Region in which we work, due to limitation of Azure for Students subscriptions, we have to use East US
+$location = "eastus"
+# Subscription Id that we will get from the the context
+$subscriptionId = (Get-AzContext).Subscription.Id
+
+# Creating a resource group
+New-AzResourceGroup -Name $resourceGroup -Location $location
+
+### This part of the script is based around Identity management
+# For VM Image builder to be able to create resources, such as Images, it needs a security context
+# For this reason, we will first create a Managed Identity after which we will assign a custom role 
+# To this identity
+[int]$currentTime = $(Get-Date -UFormat '%s') # Getting current time in seconds (unixtime). This will make sure that each identity is different
+$imageBuilderRoleName = "Azure Image Builder Role $currentTime"
+$identityName = "ImageBuilderIdentity$currentTime"
+
+# Create the identity
+New-AzUserAssignedIdentity -ResourceGroupName $resourceGroup -Name $identityName -Location $location
+
+# Save identity resource principal ID to a variable
+# This will later be used for assigning a custom role to the identity
+$identityPrincipalId = (Get-AzUserAssignedIdentity -ResourceGroupName $resourceGroup -Name $identityName).PrincipalId
+
+# Update the JSON file which holds the VM Image builder Role
+# Replace placeholders with actual data
+$roleFilePath = "./Lab03-ImageCreationRole.json"
+$roleFileContent = Get-Content -Path $roleFilePath
+$roleFileContent = $roleFileContent -replace '<subscriptionID>', $subscriptionId
+$roleFileContent = $roleFileContent -replace '<rgName>', $resourceGroup
+$roleFileContent = $roleFileContent -replace 'Azure Image Builder Service Image Creation Role', $imageBuilderRoleName
+$roleFileContent | Out-File -FilePath $roleFilePath -Force
+
+# Create the new Role definition
+New-AzRoleDefinition -InputFile $roleFilePath
+
+# Assign the Role Definition to the Image Builder service principle
+$RoleAssignParams = @{
+    ObjectId = $identityPrincipalId
+    RoleDefinitionName = $imageBuilderRoleName
+    Scope = "/subscriptions/$subscriptionId/resourceGroups/$resourceGroup"
+}
+
+New-AzRoleAssignment @RoleAssignParams
+
+# Verify that the role assignment was successful
+Get-AzRoleAssignment -ObjectId $identityPrincipalId | Select-Object DisplayName,RoleDefinitionName
+
+######## END    Task 1: Preparing the Subscription for VM Image builder ########
+
+######## BEGIN  Task 2: Creating and deploying an Image Template ########
+### Now that our subscription has all the features we need registered, and we have a Managed identity account with an assigned custom role that 
+### Will allow it to operate on the behalf of VM Image Builder service, we can move on to actually using the VM Image Builder service
+
+# The starter template that can be used as the initial point of every project can be found on this link
+# https://github.com/danielsollondon/azvmimagebuilder/tree/master/quickquickstarts/0_Creating_a_Custom_Windows_Managed_Image
+
+# To make sure that we have all the cmdlets available install the specific module we need
+Install-Module -Name Az.ImageBuilder
+
+# First, let's define a few more variables
+$templateFileName = "Lab03-Win10Template-active.json"
+$imageName = "windows11CustomImage"
+$imageTemplateName = "image"
+$runOutputName = "windows11Client"
+$templateFilePath = "./$templateFileName"
+$identityName = (Get-AzUserAssignedIdentity -ResourceGroupName $resourceGroup).Name
+$identityNameResourceId = (Get-AzUserAssignedIdentity -ResourceGroupName $resourceGroup -Name $identityName).Id
+
+# Now, using the same approach as with the Custom role definition, let us update the Image template file
+$templateFileContent = Get-Content -Path $templateFilePath
+$templateFileContent = $templateFileContent -replace '<subscriptionID>', $subscriptionID
+$templateFileContent = $templateFileContent -replace '<rgName>', $resourceGroup
+$templateFileContent = $templateFileContent -replace '<region>', $location
+$templateFileContent = $templateFileContent -replace '<runOutputName>', $runOutputName
+$templateFileContent = $templateFileContent -replace '<imageName>', $imageName
+$templateFileContent = $templateFileContent -replace '<imgBuilderId>', $identityNameResourceId
+$templateFileContent | Out-File -FilePath $templateFilePath -Force
+
+# Now, using the updated template file, we can run the deployment
+# This command will create an Azure Image builder Definition based on which we can run Azure image builder builds
+# Consider this step to be a simple commit of everything we've done in Task 2 to Azure
+# Before this, everything we did to the template, was just locally
+# This command will create a new Resource group in your subscription, the name of which will start with IT_
+# Do not delete this resource group as it is used for managing all the files necessary for building the actual image
+# This process can take up to few minutes
+New-AzResourceGroupDeployment -ResourceGroupName $resourceGroup -TemplateFile $templateFilePath -api-version "2019-05-01-preview" -imageTemplateName $imageTemplateName -svclocation $location
+
+# Next, we verify the template
+Get-AzImageBuilderTemplate -ImageTemplateName $imageTemplateName -ResourceGroupName $resourceGroup |
+Select-Object -Property Name, LastRunStatusRunState, LastRunStatusMessage, ProvisioningState, ProvisioningErrorMessage
+
+# Once the deployment is done and the image template, we can start the Image Build Proces
+# This process can take up to few minutes as well
+Start-AzImageBuilderTemplate -ResourceGroupName $resourceGroup -Name $imageTemplateName
+
+######## END    Task 2: Creating and deploying an Image Template ########
+
+######## BEGIN  Task 3: Creating a VM based on the newly created Managed image and cleanup ########
+# Once the process of building and image is done, check the Azure portal and confirm that everything is just as you expected
+### Next, let us create a VM using this image
+# This will be used to create the initial user/password combination; THIS CANNOT BE Administrator
+$creds = Get-Credential 
+
+# The way we reference each image in powershell is we consider them artifacts of the Image Builder Run/Process
+$artifactId = (Get-AzImageBuilderTemplateRunOutput -ImageTemplateName $imageTemplateName -ResourceGroupName $resourceGroup).ArtifactId 
+
+# Lastly, we create a new VM
+New-AzVM -ResourceGroupName $resourceGroup -Image $artifactId -Name myWinVM01 -Credential $creds -size Standard_DS2_v2
+
+# Once you're done with testing, make sure to clean everything up
+# First, let's remove the template deployment
+Remove-AzImageBuilderTemplate -ImageTemplateName $imageTemplateName -ResourceGroupName $resourceGroup
+
+# Then we remove other resource groups
+Get-AzResourceGroup | Remove-AzResourceGroup -Force -Confirm:$false
+
+######## END    Task 3: Creating a VM based on the newly created Managed image and cleanup ########
+
+
+
+########################################################################################################################### 
+#                                          ADDITIONAL MATERIAL                                                            #
+# Find the publisher, offer and Sku                                                                                       #
+# To use for the deployment template to identify                                                                          #                             
+# source marketplace images                                                                                               #                
+# https://www.ciraltos.com/find-skus-images-available-azure-rm/                                                           #
+Get-AzVMImagePublisher -Location $location | where-object {$_.PublisherName -like "*win*"} | ft PublisherName,Location    #
+$pubName = 'MicrosoftWindowsDesktop'                                                                                      #
+Get-AzVMImageOffer -Location $location -PublisherName $pubName | ft Offer,PublisherName,Location                          #
+# Set Offer to 'office-365' for images with O365                                                                          #
+# $offerName = 'office-365'                                                                                               #
+$offerName = 'windows-11'                                                                                                 #
+Get-AzVMImageSku -Location $location -PublisherName $pubName -Offer $offerName | ft Skus,Offer,PublisherName,Location     #
+$skuName = 'win11-23h2-pro'                                                                                               #
+Get-AzVMImage -Location $location -PublisherName $pubName -Skus $skuName -Offer $offerName                                #
+$version = '22631.2715.231109'                                                                                            #
+Get-AzVMImage -Location $location -PublisherName $pubName -Offer $offerName -Skus $skuName -Version $version              #
+########################################################################################################################### 
