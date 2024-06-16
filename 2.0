@@ -1,0 +1,57 @@
+
+ cloudbase-init configuration , that will be used to set the following configuration on a Windows machine:
+• ﻿﻿﻿Set time zone to Europe/Berlin
+• ﻿﻿﻿Set hostname of the machine to "win-user-lastname" (For the "lastname" make sure to use your own last name)
+• ﻿﻿﻿Create users "user1" and "user2" and add them to the group called "cloud-users"
+
+
+[DEFAULT]
+# List of services to be executed by Cloudbase-Init
+plugins=cloudbaseinit.plugins.common.setuserpassword.SetUserPasswordPlugin,cloudbaseinit.plugins.common.networkconfig.NetworkConfigPlugin,cloudbaseinit.plugins.windows.sethostname.SetHostNamePlugin,cloudbaseinit.plugins.common.sshpublickeys.SetUserSSHPublicKeysPlugin,cloudbaseinit.plugins.windows.createuser.CreateUserPlugin,cloudbaseinit.plugins.windows.extendvolumes.ExtendVolumesPlugin,cloudbaseinit.plugins.common.settimezone.SetTimezonePlugin
+
+# The metadata service to be used
+metadata_services=cloudbaseinit.metadata.services.httpservice.HttpService,cloudbaseinit.metadata.services.configdrive.ConfigDriveService
+
+# Allowing Cloudbase-Init to set the time zone
+timezone=Europe/Berlin
+
+# Setting the hostname
+hostname=win-user-lastname
+
+# List of user names to be created
+users=user1,user2
+
+# Group to add users to
+groups=cloud-users
+
+# Plugin settings
+[CreateUserPlugin]
+groups=cloud-users
+
+[SetTimezonePlugin]
+timezone=Europe/Berlin
+
+[SetHostNamePlugin]
+hostname=win-user-lastname
+----------------------------------------------
+[DEFAULT]: The main section where general settings are defined.
+
+plugins: Specifies the list of plugins to be executed by Cloudbase-Init. This includes plugins for setting user passwords, configuring the network, setting the hostname, setting SSH public keys, creating users, extending volumes, and setting the time zone.
+metadata_services: Specifies the metadata services to be used by Cloudbase-Init.
+timezone: Sets the time zone for the Windows machine.
+hostname: Sets the hostname for the Windows machine.
+users: Specifies the users to be created.
+groups: Specifies the group to which the users should be added.
+[CreateUserPlugin]: The section for settings related to the CreateUser plugin.
+
+groups: Specifies the group to which the users should be added. This is configured to add the users to the "cloud-users" group.
+[SetTimezonePlugin]: The section for settings related to the SetTimezone plugin.
+
+timezone: Sets the time zone for the Windows machine.
+[SetHostNamePlugin]: The section for settings related to the SetHostName plugin.
+
+hostname: Sets the hostname for the Windows machine.
+Replace "lastname" with your actual last name in the hostname parameter to reflect the correct configuration.
+
+
+-----------------------------------------------
