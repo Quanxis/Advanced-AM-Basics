@@ -1,0 +1,54 @@
+<make azure VM image builder image temp, as in windows 10 vm with
+C: DirectoryUsedForSharing directory created. give subscription id 2727-272-2424>
+
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-05-01-preview/imageTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "resources": [
+    {
+      "type": "Microsoft.VirtualMachineImages/imageTemplates",
+      "apiVersion": "2019-05-01-preview",
+      "location": "eastus",
+      "name": "myImageTemplate",
+      "properties": {
+        "buildTimeoutInMinutes": 60,
+        "vmProfile": {
+          "vmSize": "Standard_D2s_v3",
+          "osDiskSizeGB": 127
+        },
+        "source": {
+          "type": "PlatformImage",
+          "publisher": "MicrosoftWindowsDesktop",
+          "offer": "Windows-10",
+          "sku": "19h1-evd",
+          "version": "latest"
+        },
+        "customize": [
+          {
+            "type": "PowerShell",
+            "name": "CreateSharedDirectory",
+            "scriptUri": "https://raw.githubusercontent.com/<your-repo>/create-directory.ps1"
+          }
+        ],
+        "distribute": [
+          {
+            "type": "ManagedImage",
+            "imageId": "/subscriptions/272772-27272-727722/resourceGroups/myResourceGroup/providers/Microsoft.Compute/images/myWindows10Image",
+            "location": "eastus",
+            "runOutputName": "managedImageOutput",
+            "artifactTags": {
+              "source": "azureVmImageBuilder",
+              "baseosimg": "windows10"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+
+PowerShell Script (create-directory.ps1
+Create a PowerShell script to create the directory C:\DirectoryUsedForSharing:
+
+# create-directory.ps1
+New-Item -Path "C:\DirectoryUsedForSharing" -ItemType "directory"
