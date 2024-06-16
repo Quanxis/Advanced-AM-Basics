@@ -1,0 +1,3 @@
+When you send a request through any of the Azure APIs, tools, or SDKs, Resource Manager receives the request. It authenticates and authorizes the request before forwarding it to the appropriate Azure service. 
+Because all requests are handled through the same API, we shoud see consistent results and capabilities in all the different tools.
+thus the process az vm image builder goes through each time we deply a new image temp resource
