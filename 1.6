@@ -1,4 +1,4 @@
-
+packer.
 should create a Managedimage that will be used to deploy a Windows Server 2016 virtual machine. A user named "website" should be created inside the Image. An IIS web server should be installed in the Image and the default website should server the content: "Wohooo, an IIS server. My favorite!". 
 (The default path from which IIS serves websites is Clinetpub\webroot))
 
@@ -79,3 +79,39 @@ Steps to Use the Configuration
 -----------------------------------------
 packer build windows-server-2016-iis.json
 -----------------------------------------
+
+source "azure-arm" "packer_vm" {
+  azure_tags = {
+    department = "engineering"
+    environment = "production"
+  }
+  build_resource_group_name         = "packer-builder-rg"
+  communicator                      = "winrm"
+  image_offer                       = "WindowsServer"
+  image_publisher                   = "MicrosoftWindowsServer"
+  image_sku                         = "2016-Datacenter"
+  managed_image_name                = "lo1_5_win_srv_webserver"
+  managed_image_resource_group_name = "lo1_5_packer"
+  os_type                           = "Windows"
+  vm_size                           = "Standard_D2_v2"
+  winrm_insecure                    = true
+  winrm_timeout                     = "5m"
+  winrm_use_ssl                     = true
+  winrm_username                    = "webserver"
+}
+
+build {
+  sources = ["source.azure-arm.packer_vm"]
+
+  provisioner "powershell" {
+  # the default path of IIS shoud be C:\inetput\wwwroot but I have entered the one from the exam
+    inline = [
+      "Install-WindowsFeature -name Web-Server -IncludeManagementTools",
+      "Remove-Item -Recurse C:\\inetpub\\webroot\\*",
+      "New-Item -Path C:\\inetpub\\webroot\\index.html -Type File -Value '<html><head></head><body><h1>Wohooo, an IIS server</h1></body></html>'",
+      # Add Sysprep command below to generalize the image, this command was nessery becase in my testing it didnt work wihout preping the image
+      "C:\\Windows\\System32\\Sysprep\\Sysprep.exe /oobe /generalize /shutdown /quiet" 
+    ]
+  }
+
+}
