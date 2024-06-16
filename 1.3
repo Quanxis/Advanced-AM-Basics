@@ -78,3 +78,35 @@ Connect to that VM:
     packer.exe build Lo1_3-Packer.pkr.hcl
 
 -----------------------------------------------------------
+variables changeable
+
+source "azure-arm" "packer_vm" {
+  azure_tags = {
+    department = "engineering"
+    environment = "production"
+  }
+  build_resource_group_name         = "packer-builder-rg"
+  communicator                      = "winrm"
+  image_offer                       = "WindowsServer"
+  image_publisher                   = "MicrosoftWindowsServer"
+  image_sku                         = "2019-Datacenter"
+  managed_image_name                = "Lo13packerimager"
+  managed_image_resource_group_name = "midtermmeow"
+  os_type                           = "Windows"
+  vm_size                           = "Standard_D2_v2"
+  winrm_insecure                    = true
+  winrm_timeout                     = "5m"
+  winrm_use_ssl                     = true
+  winrm_username                    = "midtermAmeow"
+}
+
+build {
+  sources = ["source.azure-arm.packer_vm"]
+
+  provisioner "powershell" {
+    inline = []
+  }
+
+}
+
+--------------------------------------------------------------
