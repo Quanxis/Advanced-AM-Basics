@@ -59,3 +59,22 @@ windows server 2016 virtual, user "blabla" be inside image>
 
 Run the following command in your terminal or command prompt to initiate the build process:
 packer build windows-server-2016.json
+-----------------------------------------
+Steps to build packer
+-----------------------------------------
+Create an Azure VM with Identity Management Enabled
+Create a Virtual Machine in azure:
+    Click on "Create a resource".
+    Choose "Virtual machines".
+    Fill in the necessary details such as subscription, resource group, VM name, region,
+    image, size, and administrative credentials.
+Enable Identity Management:
+    In the "Management" tab, find the "Identity" section.
+    Under "System assigned managed identity", switch the status to "On".
+    Click "Review + create" and then "Create" to deploy the VM
+Connect to that VM:
+    Autenticate to Azure
+    Connect-AzAccount
+    packer.exe build Lo1_3-Packer.pkr.hcl
+
+-----------------------------------------------------------
