@@ -1,0 +1,81 @@
+
+should create a Managedimage that will be used to deploy a Windows Server 2016 virtual machine. A user named "website" should be created inside the Image. An IIS web server should be installed in the Image and the default website should server the content: "Wohooo, an IIS server. My favorite!". 
+(The default path from which IIS serves websites is Clinetpub\webroot))
+
+
+{
+  "builders": [
+    {
+      "type": "azure-arm",
+
+      "client_id": "YOUR_AZURE_CLIENT_ID",
+      "client_secret": "YOUR_AZURE_CLIENT_SECRET",
+      "tenant_id": "YOUR_AZURE_TENANT_ID",
+      "subscription_id": "YOUR_AZURE_SUBSCRIPTION_ID",
+
+      "managed_image_resource_group_name": "myResourceGroup",
+      "managed_image_name": "WindowsServer2016IISImage",
+      "managed_image_location": "East US",
+
+      "os_type": "Windows",
+      "image_publisher": "MicrosoftWindowsServer",
+      "image_offer": "WindowsServer",
+      "image_sku": "2016-Datacenter",
+      "communicator": "winrm",
+      "winrm_use_ssl": true,
+      "winrm_insecure": true,
+      "winrm_timeout": "3m",
+      "winrm_username": "packer",
+
+      "azure_tags": {
+        "dept": "Engineering",
+        "task": "Image deployment"
+      },
+
+      "build_resource_group_name": "packerResourceGroup",
+      "vm_size": "Standard_DS2_v2"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "powershell",
+      "inline": [
+        "net user website /add",
+        "net localgroup administrators website /add"
+      ]
+    },
+    {
+      "type": "powershell",
+      "inline": [
+        "Install-WindowsFeature -name Web-Server -IncludeManagementTools",
+        "$webContent = 'Wohooo, an IIS server. My favorite!'",
+        "$path = 'C:\\inetpub\\wwwroot\\index.html'",
+        "$webContent | Out-File -FilePath $path -Encoding ASCII"
+      ]
+    }
+  ]
+}
+
+--------------------------------------------------------------------------------
+o	client_id, client_secret, tenant_id, subscription_id: These fields are required to authenticate with your Azure account. Replace them with your actual Azure credentials.
+o	managed_image_resource_group_name: The name of the resource group where the managed image will be stored.
+o	managed_image_name: The name of the managed image to be created.
+o	managed_image_location: The Azure region where the managed image will be created.
+o	os_type: Specifies the operating system type, which is "Windows" in this case.
+o	image_publisher, image_offer, image_sku: These fields specify the base image to use, which is Windows Server 2016 Datacenter edition in this case.
+o	communicator: Specifies the communicator to use. For Windows, winrm is used.
+o	winrm_use_ssl, winrm_insecure, winrm_timeout, winrm_username: These fields configure the WinRM connection settings.
+o	azure_tags: Tags to apply to the Azure resources created.
+o	build_resource_group_name: The name of the resource group to use for building the image.
+o	vm_size: Specifies the size of the temporary VM used to build the image.
+•	provisioners: This section contains the configuration for the provisioners.
+o	type: Specifies the provisioner type, which is powershell in this case.
+o	inline: A list of PowerShell commands to run during the provisioning step. The first provisioner creates a user named "website" and adds this user to the "Administrators" group. The second provisioner installs the IIS web server and configures the default website to serve the specified content.
+Steps to Use the Configuration
+1.	Save the Packer configuration to a file named windows-server-2016-iis.json.
+2.	Replace YOUR_AZURE_CLIENT_ID, YOUR_AZURE_CLIENT_SECRET, YOUR_AZURE_TENANT_ID, and YOUR_AZURE_SUBSCRIPTION_ID with your actual Azure credentials.
+3.	Ensure you have Packer installed on your local machine.
+4.	Run the following command in your terminal or command prompt to initiate the build process:
+-----------------------------------------
+packer build windows-server-2016-iis.json
+-----------------------------------------
