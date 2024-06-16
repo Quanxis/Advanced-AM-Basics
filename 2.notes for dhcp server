@@ -1,0 +1,46 @@
+power shell for installing dhcp server 
+------------------------
+Install-WindowsFeature DHCP -IncludeManagementTools
+Get-DhcpServerInDC
+------------------------
+
+# PowerShell script to install the DHCP Server role on a Windows Server
+
+# Ensure the script runs with administrative privileges
+if (-Not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))
+{
+    Write-Error "You need to run this script as an Administrator."
+    exit
+}
+
+# Function to install the DHCP Server role
+function Install-DHCPServer {
+    try {
+        # Install the DHCP Server role
+        Write-Output "Installing DHCP Server role..."
+        Install-WindowsFeature -Name DHCP -IncludeManagementTools -Verbose
+
+        # Verify the installation
+        $feature = Get-WindowsFeature -Name DHCP
+        if ($feature.Installed) {
+            Write-Output "DHCP Server role installed successfully."
+        } else {
+            Write-Error "Failed to install DHCP Server role."
+        }
+
+        # Start the DHCP Server service
+        Write-Output "Starting DHCP Server service..."
+        Start-Service -Name DHCPServer
+
+        # Set the DHCP Server service to start automatically
+        Set-Service -Name DHCPServer -StartupType Automatic
+        Write-Output "DHCP Server service started and set to start automatically."
+
+    } catch {
+        Write-Error "An error occurred: $_"
+    }
+}
+
+# Execute the function to install the DHCP Server role
+Install-DHCPServer
+-------------------------------------------------------------------
