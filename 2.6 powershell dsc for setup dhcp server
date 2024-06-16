@@ -1,0 +1,48 @@
+Configuration DHCP_server
+{
+    Import-DscResource -ModuleName 'PSDesiredStateConfiguration'
+    Import-DscResource -ModuleName 'xWebAdministration'
+
+    # Type domain name of remote machine or leave localhost
+    Node "localhost"
+    {
+        WindowsFeature DNSserver
+        {
+            Ensure = "Present"
+            Name   = "DNSserver"
+        }
+    }
+}
+
+-------------------------------------------
+Create the DSC Configuration Script
+This configuration script uses the DSC module to install the DHCP Server role and configure a DHCP scope.
+
+configuration DhcpServerConfiguration {
+    Import-DscResource -ModuleName DhcpServerModule
+
+    param (
+        [Parameter(Mandatory = $true)]
+        [string] $Ensure,
+
+        [Parameter(Mandatory = $true)]
+        [string] $ScopeName,
+
+        [Parameter(Mandatory = $true)]
+        [string] $Subnet
+    )
+
+    node localhost {
+        xDhcpServer DHCP {
+            Ensure = $Ensure
+            ScopeName = $ScopeName
+            Subnet = $Subnet
+        }
+    }
+}
+
+# Generate the MOF file for the configuration
+DhcpServerConfiguration -Ensure 'Present' -ScopeName 'MyScope' -Subnet '192.168.1.0' -OutputPath "C:\DSC"
+
+------------------------------------------------
+
