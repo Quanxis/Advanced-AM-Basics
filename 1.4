@@ -1,0 +1,140 @@
+<temp for virtual network resource given virtual N name, address, prefix subnet name, subnet prefix
+should be configurable and output netowkr Id and subnet id>
+
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "virtualNetworkName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the virtual network."
+      }
+    },
+    "addressPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "The address prefix for the virtual network."
+      }
+    },
+    "subnetName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the subnet."
+      }
+    },
+    "subnetPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "The address prefix for the subnet."
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "eastus",
+      "metadata": {
+        "description": "The location where the virtual network will be created."
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2021-02-01",
+      "name": "[parameters('virtualNetworkName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[parameters('addressPrefix')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[parameters('subnetName')]",
+            "properties": {
+              "addressPrefix": "[parameters('subnetPrefix')]"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "outputs": {
+    "virtualNetworkId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]"
+    },
+    "subnetId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName'), parameters('subnetName'))]"
+    }
+  }
+}
+
+-----------------------------------------------------------------------------------------------
+
+parameters maybe in seperate file
+
+------------------------------------------------------------------------
+
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "virtualNetworkName": {
+            "type": "string"
+        }
+    }
+}
+
+----------------------------------------------------------------------------
+same 
+---------------------------------------------------------------------------
+
+{
+    "type": "Microsoft.Network/virtualNetworks",
+    "apiVersion": "2023-04-01",
+    "name": "[parameters('virtualNetworkName')]",
+    "location": "string",
+    "extendedLocation": {
+      "name": "string",
+      "type": "EdgeZone"
+    },
+    "properties": {
+      "addressSpace": {
+        "addressPrefixes": [ "string" ]
+      },
+      "bgpCommunities": {
+        "virtualNetworkCommunity": "string"
+      },
+      "ddosProtectionPlan": {
+        "id": "string"
+      },
+      "dhcpOptions": {
+        "dnsServers": [ "string" ]
+      },
+      "enableDdosProtection": "bool",
+      "enableVmProtection": "bool",
+      "encryption": {
+        "enabled": "bool",
+        "enforcement": "string"
+      },
+      "flowTimeoutInMinutes": "int",
+      "ipAllocations": [
+        {
+          "id": "string"
+        }
+      ],
+      "subnets": [
+        {
+          "id": "string",
+          "name": "string",
+          "properties": {
+            "addressPrefix": "string",
+            "addressPrefixes": [ "string" ]
+              }
+        }
+    ]
+    }
+  }
