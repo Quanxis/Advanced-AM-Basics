@@ -50,5 +50,26 @@ C: DirectoryUsedForSharing directory created. give subscription id 2727-272-2424
 PowerShell Script (create-directory.ps1
 Create a PowerShell script to create the directory C:\DirectoryUsedForSharing:
 
+-------------------------------------------------------------------------------
+{
+    "Name": "Azure Image Builder Service Image Creation Role",
+    "IsCustom": true,
+    "Description": "Image Builder access to create resources for the image build, you should delete or split out as appropriate",
+    "Actions": [
+        "Microsoft.Compute/galleries/read",
+        "Microsoft.Compute/galleries/images/read",
+        "Microsoft.Compute/galleries/images/versions/read",
+        "Microsoft.Compute/galleries/images/versions/write",
+        "Microsoft.Compute/images/write",
+        "Microsoft.Compute/images/read",
+        "Microsoft.Compute/images/delete"
+    ],
+    "NotActions": [],
+    "AssignableScopes": [
+        "/subscriptions/<zzzzzz-zzzzz-zzzzzz>/resourceGroups/<rgName>"
+    ]
+}
+
+
 # create-directory.ps1
 New-Item -Path "C:\DirectoryUsedForSharing" -ItemType "directory"
