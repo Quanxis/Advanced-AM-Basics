@@ -1,0 +1,13 @@
+
+how to share the scripts within the people saved in az cloud? propose where can share files such automation secure?
+
+--------------------------------------
+Create new storage
+When you use basic settings and select only a subscription, Cloud Shell creates three resources on your behalf in the supported region that's nearest to you:
+
+Resource group: cloud-shell-storage-<region>
+Storage account: cs<uniqueGuid>
+fileshare: cs-<user>-<domain>-com-<uniqueGuid>
+
+When craeting map the storage to file share, and adjust the privlages in or creat custum roles
+-*--------------------------------------------
