@@ -1,0 +1,43 @@
+
+
+
+Configuration DNSserver
+{
+    Import-DscResource -ModuleName 'PSDesiredStateConfiguration'
+    Import-DscResource -ModuleName 'xWebAdministration'
+
+    # Type domain name of remote machine or leave localhost
+    Node "localhost"
+    {
+        WindowsFeature DNS
+        {
+            Ensure = "Present"
+            Name   = "DNS"
+        }
+    }
+}
+Configuration RemoveIISWebServer
+{
+    Import-DscResource -ModuleName 'PSDesiredStateConfiguration'
+
+    Node "localhost"
+    {
+        WindowsFeature DNS
+        {
+            Ensure = "Absent"
+            Name   = "DNS"
+        }
+    }
+}
+
+
+
+----------------------
+•	Get-TargetResource: This function checks if the DNS Server role is installed on the target machine.
+•	Set-TargetResource: This function installs or removes the DNS Server role based on the value of the Ensure parameter.
+•	Test-TargetResource: This function tests whether the current state matches the desired state.
+•	DnsServerConfiguration: This is the configuration that uses the DSC resource to manage the DNS Server role.
+
+With this DSC module, you can declaratively manage the DNS Server role on your Azure VMs or other Windows machines, ensuring that it is either present or absent based on your requirements.
+
+-----------------------------------------------------------------------------------------------------------------------------------------------
